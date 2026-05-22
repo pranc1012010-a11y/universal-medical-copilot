@@ -52,3 +52,26 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Database
+*.db
+*.db-journal
+db/
+
+# Download directory
+/download/
+
+# Worklog
+worklog.md
+
+# Mini-services node_modules
+mini-services/*/node_modules/
+
+# Examples
+/examples/
+
+# Z-AI config
+.z-ai-config
+
+# Agent context
+/agent-ctx/
