@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, verifyAccessToken, sanitizeInput, checkRateLimit, hasRole } from '@/lib/auth';
-import { simulateOCR, simulateVisionEngine, parseLabMarkers, generateReportTranslation, generateAIChatResponse } from '@/lib/ai-pipeline';
+import { simulateOCR, simulateVisionEngine, parseLabMarkers, generateReportTranslation } from '@/lib/ai-pipeline-client';
+import { generateAIChatResponse } from '@/lib/ai-pipeline-server';
 import { encryptBuffer, secureFilePurge } from '@/lib/encryption';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
