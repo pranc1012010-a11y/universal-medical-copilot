@@ -1,0 +1,99 @@
+// ============================================================
+// Universal Medical Co-Pilot & Report Translator
+// Enterprise-Grade Prisma Schema
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────
+// USER MODEL — Role-Based Access Control with cryptographic keys
+// ────────────────────────────────────────────────────────────
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String?
+  passwordHash    String   // bcrypt-hashed password
+  role            String   @default("patient") // "admin" | "doctor" | "patient"
+  cryptoKey       String?  // AES-256 key for encrypted file operations (base64)
+  refreshToken    String?  // Current refresh token (hashed)
+  isActive        Boolean  @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  chatSessions    ChatSession[]
+  medicalReports  MedicalReport[]
+}
+
+// ────────────────────────────────────────────────────────────
+// CHAT SESSION MODEL — Context-aware conversation persistence
+// ────────────────────────────────────────────────────────────
+model ChatSession {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String   @default("New Consultation")
+  status          String   @default("active") // "active" | "archived" | "closed"
+  contextSummary  String?  // AI-generated summary of conversation context
+  metadata        String   @default("{}") // JSON: { mode, specialization, urgency }
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages        ChatMessage[]
+
+  @@index([userId])
+}
+
+// ────────────────────────────────────────────────────────────
+// CHAT MESSAGE MODEL — Individual messages within a session
+// ────────────────────────────────────────────────────────────
+model ChatMessage {
+  id              String   @id @default(cuid())
+  sessionId       String
+  role            String   // "user" | "assistant" | "system"
+  content         String   // Message text content
+  messageType     String   @default("text") // "text" | "image" | "document" | "system"
+  attachments     String   @default("[]") // JSON: [{ type, url, name, size }]
+  metadata        String   @default("{}") // JSON: { confidence, model, processingTime }
+  createdAt       DateTime @default(now())
+
+  session         ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+// ────────────────────────────────────────────────────────────
+// MEDICAL REPORT MODEL — Dual-view translated medical data
+// ────────────────────────────────────────────────────────────
+model MedicalReport {
+  id                    String   @id @default(cuid())
+  userId                String
+  sessionId             String?
+  reportType            String   @default("lab") // "lab" | "radiology" | "pathology" | "general"
+  sourceFileName        String?  // Original uploaded filename
+  rawExtractedText      String?  // OCR-extracted raw text
+  clinicalView          String?  // JSON: Clinical Diagnostic View data
+  patientView           String?  // JSON: General Patient View data
+  labMarkers            String   @default("[]") // JSON: [{ name, value, unit, refLow, refHigh, status }]
+  radiologyFindings     String   @default("[]") // JSON: [{ term, definition, severity }]
+  urgencyFlag           String   @default("normal") // "normal" | "elevated" | "urgent" | "critical"
+  recommendedSpecialty  String?  // e.g. "Cardiology", "Dermatology"
+  glossaryTerms         String   @default("{}") // JSON: { medicalTerm: plainLanguage }
+  gradCamData           String?  // JSON: { imageUrl, heatmapCoords, classification }
+  aiConfidence          Float    @default(0.0) // 0.0 - 1.0
+  safetyDisclaimer      Boolean  @default(true) // Always true — never prescribes
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([urgencyFlag])
+}
